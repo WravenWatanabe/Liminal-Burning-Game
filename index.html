@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Liminal Burning Game</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            opacity: 0.9;
+            margin-bottom: 30px;
+        }
+
+        .game-setup {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        input, button {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input {
+            background: rgba(255,255,255,0.9);
+            color: #333;
+            width: 80px;
+            text-align: center;
+        }
+
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .game-area {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+
+        .graph-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .vertex {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid transparent;
+            position: relative;
+            user-select: none;
+        }
+
+        .vertex.unrevealed {
+            background: #34495e;
+            color: #7f8c8d;
+            border-color: #2c3e50;
+        }
+
+        .vertex.revealed {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border-color: #1abc9c;
+            box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+        }
+
+        .vertex.burning {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border-color: #f39c12;
+            box-shadow: 0 0 20px rgba(231, 76, 60, 0.8);
+            animation: flame 1s ease-in-out infinite alternate;
+        }
+
+        .vertex:hover:not(.burning) {
+            transform: scale(1.1);
+        }
+
+        .vertex.selectable {
+            border-color: #f1c40f;
+            box-shadow: 0 0 20px rgba(241, 196, 64, 0.6);
+            animation: pulse 1s ease-in-out infinite alternate;
+        }
+
+        @keyframes flame {
+            from { box-shadow: 0 0 20px rgba(231, 76, 60, 0.8), 0 0 40px rgba(231, 76, 60, 0.4); }
+            to { box-shadow: 0 0 30px rgba(231, 76, 60, 1), 0 0 60px rgba(231, 76, 60, 0.6); }
+        }
+
+        @keyframes pulse {
+            from { box-shadow: 0 0 20px rgba(241, 196, 64, 0.6); }
+            to { box-shadow: 0 0 30px rgba(241, 196, 64, 1); }
+        }
+
+        .edge {
+            height: 4px;
+            background: linear-gradient(90deg, #95a5a6, #7f8c8d);
+            border-radius: 2px;
+            flex-grow: 1;
+            max-width: 80px;
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .info-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            backdrop-filter: blur(5px);
+        }
+
+        .turn-indicator {
+            font-size: 1.3em;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 10px 0;
+        }
+
+        .turn-saboteur {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+        }
+
+        .turn-arsonist {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-vertex {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid transparent;
+        }
+
+        .instructions {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: left;
+            backdrop-filter: blur(5px);
+        }
+
+        .instructions h3 {
+            margin-top: 0;
+            color: #f39c12;
+        }
+
+        .game-over {
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔥 Liminal Burning 🔥</h1>
+        <p class="subtitle">A strategic game of fire and sabotage</p>
+
+        <div class="game-setup">
+            <div class="controls">
+                <div class="control-group">
+                    <label>Graph Size (n):</label>
+                    <input type="number" id="graphSize" min="3" max="15" value="8">
+                </div>
+                <div class="control-group">
+                    <label>Saboteur Reveals (k):</label>
+                    <input type="number" id="kValue" min="1" max="5" value="2">
+                </div>
+                <button onclick="startGame()">Start New Game</button>
+                <button onclick="resetGame()">Reset</button>
+            </div>
+        </div>
+
+        <div class="game-area" id="gameArea" style="display: none;">
+            <div id="turnIndicator" class="turn-indicator"></div>
+            
+            <div class="graph-container" id="graphContainer"></div>
+            
+            <div class="game-info">
+                <div class="info-card">
+                    <h3>Game Stats</h3>
+                    <div id="gameStats"></div>
+                </div>
+                <div class="info-card">
+                    <h3>Current Action</h3>
+                    <div id="currentAction"></div>
+                </div>
+            </div>
+
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-vertex" style="background: #34495e; border-color: #2c3e50;"></div>
+                    <span>Unrevealed</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-vertex" style="background: linear-gradient(45deg, #3498db, #2980b9); border-color: #1abc9c;"></div>
+                    <span>Revealed</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-vertex" style="background: linear-gradient(45deg, #e74c3c, #c0392b); border-color: #f39c12;"></div>
+                    <span>Burning</span>
+                </div>
+            </div>
+
+            <div id="gameOver" class="game-over" style="display: none;"></div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to Play</h3>
+            <p><strong>Setup:</strong> Choose the graph size (n) and how many vertices the saboteur reveals each turn (k).</p>
+            <p><strong>Saboteur's Turn:</strong> Click on k unrevealed vertices to reveal them (blue highlights show selectable vertices).</p>
+            <p><strong>Arsonist's Turn:</strong> Click on one revealed, unburned vertex to set it on fire.</p>
+            <p><strong>Fire Spread:</strong> After the arsonist's turn, fire automatically spreads to adjacent vertices.</p>
+            <p><strong>Victory:</strong> The arsonist wins when all vertices are burning. The saboteur tries to delay this as long as possible.</p>
+        </div>
+    </div>
+
+    <script>
+        class LiminalBurningGame {
+            constructor() {
+                this.n = 8; // graph size
+                this.k = 2; // vertices saboteur reveals per turn
+                this.vertices = [];
+                this.currentTurn = 'saboteur';
+                this.turnNumber = 1;
+                this.toReveal = 0;
+                this.gameRunning = false;
+                this.gameEnded = false;
+            }
+
+            startGame(n, k) {
+                this.n = n;
+                this.k = k;
+                this.vertices = Array(n).fill().map((_, i) => ({
+                    id: i,
+                    state: 'unrevealed', // 'unrevealed', 'revealed', 'burning'
+                    selectable: false
+                }));
+                this.currentTurn = 'saboteur';
+                this.turnNumber = 1;
+                this.toReveal = k;
+                this.gameRunning = true;
+                this.gameEnded = false;
+                
+                this.renderGraph();
+                this.updateUI();
+                this.startSaboteurTurn();
+            }
+
+            renderGraph() {
+                const container = document.getElementById('graphContainer');
+                container.innerHTML = '';
+                
+                for (let i = 0; i < this.n; i++) {
+                    // Add vertex
+                    const vertex = document.createElement('div');
+                    vertex.className = `vertex ${this.vertices[i].state}`;
+                    vertex.textContent = i + 1;
+                    vertex.onclick = () => this.vertexClicked(i);
+                    
+                    if (this.vertices[i].selectable) {
+                        vertex.classList.add('selectable');
+                    }
+                    
+                    container.appendChild(vertex);
+                    
+                    // Add edge (except after last vertex)
+                    if (i < this.n - 1) {
+                        const edge = document.createElement('div');
+                        edge.className = 'edge';
+                        container.appendChild(edge);
+                    }
+                }
+            }
+
+            vertexClicked(index) {
+                if (!this.gameRunning || this.gameEnded || !this.vertices[index].selectable) {
+                    return;
+                }
+
+                if (this.currentTurn === 'saboteur') {
+                    this.revealVertex(index);
+                } else if (this.currentTurn === 'arsonist') {
+                    this.burnVertex(index);
+                }
+            }
+
+            revealVertex(index) {
+                this.vertices[index].state = 'revealed';
+                this.vertices[index].selectable = false;
+                this.toReveal--;
+
+                if (this.toReveal === 0) {
+                    this.endSaboteurTurn();
+                } else {
+                    this.updateSelectableVertices();
+                }
+
+                this.renderGraph();
+                this.updateUI();
+            }
+
+            burnVertex(index) {
+                this.vertices[index].state = 'burning';
+                this.vertices[index].selectable = false;
+                this.endArsonistTurn();
+            }
+
+            startSaboteurTurn() {
+                this.currentTurn = 'saboteur';
+                const unrevealedCount = this.vertices.filter(v => v.state === 'unrevealed').length;
+                this.toReveal = Math.min(this.k, unrevealedCount);
+                
+                if (this.toReveal === 0) {
+                    // No vertices to reveal, skip to arsonist
+                    this.startArsonistTurn();
+                    return;
+                }
+
+                this.updateSelectableVertices();
+                this.renderGraph();
+                this.updateUI();
+            }
+
+            updateSelectableVertices() {
+                // Clear all selectable flags
+                this.vertices.forEach(v => v.selectable = false);
+
+                if (this.currentTurn === 'saboteur') {
+                    // Saboteur can select unrevealed vertices
+                    this.vertices.forEach(v => {
+                        if (v.state === 'unrevealed') {
+                            v.selectable = true;
+                        }
+                    });
+                } else if (this.currentTurn === 'arsonist') {
+                    // Arsonist can select revealed, unburned vertices
+                    this.vertices.forEach(v => {
+                        if (v.state === 'revealed') {
+                            v.selectable = true;
+                        }
+                    });
+                }
+            }
+
+            endSaboteurTurn() {
+                this.startArsonistTurn();
+            }
+
+            startArsonistTurn() {
+                this.currentTurn = 'arsonist';
+                const revealedUnburned = this.vertices.filter(v => v.state === 'revealed').length;
+                
+                if (revealedUnburned === 0) {
+                    // No vertices to burn, skip turn and spread fire
+                    this.spreadFire();
+                    this.checkGameEnd();
+                    if (!this.gameEnded) {
+                        this.turnNumber++;
+                        this.startSaboteurTurn();
+                    }
+                    return;
+                }
+
+                this.updateSelectableVertices();
+                this.renderGraph();
+                this.updateUI();
+            }
+
+            endArsonistTurn() {
+                this.spreadFire();
+                this.renderGraph();
+                this.checkGameEnd();
+                
+                if (!this.gameEnded) {
+                    this.turnNumber++;
+                    this.startSaboteurTurn();
+                }
+            }
+
+            spreadFire() {
+                const newlyBurning = [];
+                
+                for (let i = 0; i < this.n; i++) {
+                    if (this.vertices[i].state !== 'burning') {
+                        // Check if adjacent to burning vertex
+                        const hasAdjacentFire = (i > 0 && this.vertices[i-1].state === 'burning') ||
+                                              (i < this.n-1 && this.vertices[i+1].state === 'burning');
+                        
+                        if (hasAdjacentFire) {
+                            newlyBurning.push(i);
+                        }
+                    }
+                }
+
+                // Apply fire spread
+                newlyBurning.forEach(i => {
+                    this.vertices[i].state = 'burning';
+                    this.vertices[i].selectable = false;
+                });
+
+                this.updateUI();
+            }
+
+            checkGameEnd() {
+                const allBurning = this.vertices.every(v => v.state === 'burning');
+                
+                if (allBurning) {
+                    this.gameEnded = true;
+                    this.gameRunning = false;
+                    this.showGameOver();
+                }
+            }
+
+            showGameOver() {
+                const gameOverDiv = document.getElementById('gameOver');
+                gameOverDiv.style.display = 'block';
+                gameOverDiv.innerHTML = `
+                    <h2>🔥 Game Over! 🔥</h2>
+                    <p>The arsonist has successfully burned the entire graph!</p>
+                    <p><strong>Game lasted ${this.turnNumber} turns</strong></p>
+                    <p>The saboteur delayed the inevitable as long as possible.</p>
+                `;
+            }
+
+            updateUI() {
+                // Turn indicator
+                const turnIndicator = document.getElementById('turnIndicator');
+                if (this.gameEnded) {
+                    turnIndicator.textContent = 'Game Over';
+                    turnIndicator.className = 'turn-indicator';
+                } else {
+                    const playerName = this.currentTurn === 'saboteur' ? 'Saboteur' : 'Arsonist';
+                    turnIndicator.textContent = `Turn ${this.turnNumber} - ${playerName}`;
+                    turnIndicator.className = `turn-indicator turn-${this.currentTurn}`;
+                }
+
+                // Game stats
+                const burning = this.vertices.filter(v => v.state === 'burning').length;
+                const revealed = this.vertices.filter(v => v.state === 'revealed').length;
+                const unrevealed = this.vertices.filter(v => v.state === 'unrevealed').length;
+                
+                document.getElementById('gameStats').innerHTML = `
+                    <div>🔥 Burning: ${burning}/${this.n}</div>
+                    <div>👁️ Revealed: ${revealed}</div>
+                    <div>❓ Unrevealed: ${unrevealed}</div>
+                `;
+
+                // Current action
+                let actionText = '';
+                if (this.gameEnded) {
+                    actionText = 'Game complete!';
+                } else if (this.currentTurn === 'saboteur') {
+                    actionText = `Select ${this.toReveal} vertex${this.toReveal !== 1 ? 'es' : ''} to reveal`;
+                } else {
+                    actionText = 'Select 1 vertex to burn';
+                }
+                
+                document.getElementById('currentAction').textContent = actionText;
+            }
+        }
+
+        const game = new LiminalBurningGame();
+
+        function startGame() {
+            const n = parseInt(document.getElementById('graphSize').value);
+            const k = parseInt(document.getElementById('kValue').value);
+            
+            if (k > n) {
+                alert('k cannot be greater than the graph size!');
+                return;
+            }
+            
+            document.getElementById('gameArea').style.display = 'block';
+            document.getElementById('gameOver').style.display = 'none';
+            game.startGame(n, k);
+        }
+
+        function resetGame() {
+            document.getElementById('gameArea').style.display = 'none';
+            game.gameRunning = false;
+            game.gameEnded = false;
+        }
+
+        // Initialize with default values
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('graphSize').addEventListener('change', function() {
+                const k = parseInt(document.getElementById('kValue').value);
+                const n = parseInt(this.value);
+                if (k > n) {
+                    document.getElementById('kValue').value = n;
+                }
+                document.getElementById('kValue').max = n;
+            });
+        });
+    </script>
+</body>
+</html>
