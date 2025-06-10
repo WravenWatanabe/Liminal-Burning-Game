@@ -88,6 +88,10 @@
             transform: none;
         }
 
+        #undoButton {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+
         .game-area {
             background: rgba(255,255,255,0.1);
             padding: 30px;
@@ -259,7 +263,7 @@
                     <input type="number" id="kValue" min="1" max="5" value="2">
                 </div>
                 <button onclick="startGame()">Start New Game</button>
-                <button onclick="resetGame()">Reset</button>
+                <button id="undoButton" onclick="undoMove()" disabled>Undo Move</button>
             </div>
         </div>
 
@@ -304,10 +308,20 @@
             <p><strong>Arsonist's Turn:</strong> Click on one revealed, unburned vertex to set it on fire.</p>
             <p><strong>Fire Spread:</strong> After the arsonist's turn, fire automatically spreads to adjacent vertices.</p>
             <p><strong>Victory:</strong> The arsonist wins when all vertices are burning. The saboteur tries to delay this as long as possible.</p>
+            <p><strong>Undo:</strong> Use the undo button to revert the most recent move by either player.</p>
         </div>
     </div>
 
     <script>
+        class GameState {
+            constructor(vertices, currentTurn, turnNumber, toReveal) {
+                this.vertices = vertices.map(v => ({...v}));
+                this.currentTurn = currentTurn;
+                this.turnNumber = turnNumber;
+                this.toReveal = toReveal;
+            }
+        }
+
         class LiminalBurningGame {
             constructor() {
                 this.n = 8; // graph size
@@ -318,6 +332,41 @@
                 this.toReveal = 0;
                 this.gameRunning = false;
                 this.gameEnded = false;
+                this.history = [];
+            }
+
+            saveState() {
+                this.history.push(new GameState(
+                    this.vertices,
+                    this.currentTurn,
+                    this.turnNumber,
+                    this.toReveal
+                ));
+                this.updateUndoButton();
+            }
+
+            undo() {
+                if (this.history.length === 0) return;
+                
+                const previousState = this.history.pop();
+                this.vertices = previousState.vertices.map(v => ({...v}));
+                this.currentTurn = previousState.currentTurn;
+                this.turnNumber = previousState.turnNumber;
+                this.toReveal = previousState.toReveal;
+                this.gameEnded = false;
+                
+                this.updateSelectableVertices();
+                this.renderGraph();
+                this.updateUI();
+                this.updateUndoButton();
+                
+                // Hide game over message if it was showing
+                document.getElementById('gameOver').style.display = 'none';
+            }
+
+            updateUndoButton() {
+                const undoButton = document.getElementById('undoButton');
+                undoButton.disabled = this.history.length === 0 || !this.gameRunning;
             }
 
             startGame(n, k) {
@@ -333,9 +382,11 @@
                 this.toReveal = k;
                 this.gameRunning = true;
                 this.gameEnded = false;
+                this.history = [];
                 
                 this.renderGraph();
                 this.updateUI();
+                this.updateUndoButton();
                 this.startSaboteurTurn();
             }
 
@@ -347,7 +398,7 @@
                     // Add vertex
                     const vertex = document.createElement('div');
                     vertex.className = `vertex ${this.vertices[i].state}`;
-                    vertex.textContent = i + 1;
+                    vertex.textContent = i; // Changed from i + 1 to i
                     vertex.onclick = () => this.vertexClicked(i);
                     
                     if (this.vertices[i].selectable) {
@@ -369,6 +420,9 @@
                 if (!this.gameRunning || this.gameEnded || !this.vertices[index].selectable) {
                     return;
                 }
+
+                // Save state before making the move
+                this.saveState();
 
                 if (this.currentTurn === 'saboteur') {
                     this.revealVertex(index);
@@ -568,10 +622,8 @@
             game.startGame(n, k);
         }
 
-        function resetGame() {
-            document.getElementById('gameArea').style.display = 'none';
-            game.gameRunning = false;
-            game.gameEnded = false;
+        function undoMove() {
+            game.undo();
         }
 
         // Initialize with default values
